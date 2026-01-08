@@ -11,7 +11,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { mood, text } = req.body || {};
+  // Manual body parsing for Vercel serverless compatibility
+  let body = req.body;
+  if (!body) {
+    try {
+      body = JSON.parse(await new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => data += chunk);
+        req.on('end', () => resolve(data));
+        req.on('error', reject);
+      }));
+    } catch {
+      return res.status(400).json({ error: 'Invalid JSON' });
+    }
+  }
+  const { mood, text } = body || {};
   if (typeof mood !== 'string' || typeof text !== 'string' || !mood || !text) {
     return res.status(400).json({ error: 'Invalid input' });
   }
